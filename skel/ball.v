@@ -24,7 +24,6 @@ module ball #(parameter xloc_start=320,
    reg [4:0]			 occupied_bot;
    reg [4:0]			 occupied_top;
    reg				 xdir, ydir;
-   reg				 update_neighbors;
 
    wire				 blk_lft_up, blk_lft_dn, blk_rgt_up, blk_rgt_dn;
    wire				 blk_up_lft, blk_up_rgt, blk_dn_lft, blk_dn_rgt;
@@ -46,12 +45,7 @@ module ball #(parameter xloc_start=320,
 	   occupied_bot <= 5'b0;
 	   occupied_top <= 5'b0;
 	end else if (pixpulse) begin  // only make changes when pixpulse is high
-	   if (update_neighbors) begin
-	      occupied_lft <= 5'b0;
-	      occupied_rgt <= 5'b0;
-	      occupied_bot <= 5'b0;
-	      occupied_top <= 5'b0;
-	   end else if (~empty) begin
+	   if (~empty) begin
 	      if (vcount >= yloc-2 && vcount <= yloc+2) 
 		if (hcount == xloc+2)
 		  occupied_rgt[(yloc-vcount+2)] <= 1'b1;  // LSB is at bottom
@@ -90,9 +84,7 @@ module ball #(parameter xloc_start=320,
 	   yloc <= yloc_start;
 	   xdir <= xdir_start;
 	   ydir <= ydir_start;
-	   update_neighbors <= 0;
 	end else if (pixpulse) begin
-	   update_neighbors <= 0; // default
 	   if (move) begin
 
 	      case ({xdir,ydir})
@@ -121,7 +113,6 @@ module ball #(parameter xloc_start=320,
 		end
 	      endcase 
 
-	      update_neighbors <= 1;
 	   end 
 	end 
      end
