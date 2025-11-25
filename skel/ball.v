@@ -45,19 +45,19 @@ module ball #(parameter xloc_start=320,
 	   occupied_bot <= 5'b0;
 	   occupied_top <= 5'b0;
 	end else if (pixpulse) begin  // only make changes when pixpulse is high
-	   if (~empty) begin
+
 	      if (vcount >= yloc-2 && vcount <= yloc+2) 
 		if (hcount == xloc+2)
-		  occupied_rgt[(yloc-vcount+2)] <= 1'b1;  // LSB is at bottom
+			occupied_rgt[(yloc-vcount+2)] <= ~empty;  // LSB is at bottom
 		else if (hcount == xloc-2)
-		  occupied_lft[(yloc-vcount+2)] <= 1'b1;
+			occupied_lft[(yloc-vcount+2)] <= ~empty;
 	      
 	      if (hcount >= xloc-2 && hcount <= xloc+2) 
 		if (vcount == yloc+2)
-		  occupied_bot[(xloc-hcount+2)] <= 1'b1;  // LSB is at right
+			occupied_bot[(xloc-hcount+2)] <= ~empty;  // LSB is at right
 		else if (vcount == yloc-2)
-		  occupied_top[(xloc-hcount+2)] <= 1'b1;
-	   end
+			occupied_top[(xloc-hcount+2)] <= ~empty;
+
 	end
      end	      
 
