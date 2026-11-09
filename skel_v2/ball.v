@@ -25,6 +25,7 @@ module ball #(parameter xloc_start=320,
     output reg       scan_active,
     // Movement
     input            move,       // one-cycle pulse: update position
+    input            frame_start, // one-pixpulse pulse at start of vblank
     // Outputs
     output           draw_ball,     // paint this pixel as ball
     output           draw_ball_col, // is ball at collision scan coords?
@@ -53,8 +54,26 @@ module ball #(parameter xloc_start=320,
    //------------------------------------------------------------
    // Paint: is the raster pointing at this ball?
    //------------------------------------------------------------
-   assign draw_ball = (hcount <= xloc + RADIUS) & (hcount >= xloc - RADIUS) &
-                      (vcount <= yloc + RADIUS) & (vcount >= yloc - RADIUS);
+   // xloc/yloc change mid-frame, so paint from a copy latched once per
+   // frame (at vblank).  Otherwise the top and bottom rows of the ball can
+   // be drawn at different positions (tearing).  Collision still uses the
+   // live xloc/yloc.
+   reg [9:0] disp_x, disp_y;
+   always @(posedge clk or posedge rst) begin
+      if (rst) begin
+         disp_x <= xloc_start;
+         disp_y <= yloc_start;
+      end else if (pixpulse && frame_start) begin
+         disp_x <= xloc;
+         disp_y <= yloc;
+      end
+   end
+
+   wire draw_now = (hcount <= disp_x + RADIUS) & (hcount >= disp_x - RADIUS) &
+                   (vcount <= disp_y + RADIUS) & (vcount >= disp_y - RADIUS);
+
+   
+   assign draw_ball = draw_now;
 
    //------------------------------------------------------------
    // Collision: is the ball body at the current collision scan coords?
@@ -95,7 +114,7 @@ module ball #(parameter xloc_start=320,
    //
    // Index mapping: index SCAN_WIDTH-1-offset = 4 at top (yloc-SCAN_BORDER)
    //                                           = 0 at bottom (yloc+SCAN_BORDER)
-   // This matches the original (yloc-vcount+SCAN_BORDER) indexing.
+   // 
    //------------------------------------------------------------
    always @(posedge clk or posedge rst) begin
       if (rst) begin
@@ -148,7 +167,7 @@ module ball #(parameter xloc_start=320,
    end
 
    //------------------------------------------------------------
-   // Collision detection wires (unchanged from original)
+   // Collision detection wires
    //------------------------------------------------------------
    assign blk_lft_up = |occupied_lft[3:2];
    assign blk_lft_dn = |occupied_lft[2:1];
@@ -166,7 +185,7 @@ module ball #(parameter xloc_start=320,
    assign corner_rgt_dn = occupied_rgt[0] & ~blk_dn_rgt & ~blk_rgt_dn;
 
    //------------------------------------------------------------
-   // Movement (unchanged logic; triggered by move pulse)
+   // Movement (triggered by move pulse)
    //------------------------------------------------------------
    always @(posedge clk or posedge rst) begin
       if (rst) begin

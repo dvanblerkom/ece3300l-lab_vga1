@@ -28,6 +28,8 @@ module top_vga (
   wire [NSPRITE-1:0] scan_done;
 
   reg                move;
+  reg                vblank_d1;
+  wire               frame_start;
   reg  [        1:0] scan_state;
   reg  [       11:0] current_pixel;
   reg  [       15:0] move_delay;
@@ -90,7 +92,7 @@ module top_vga (
   //---------------------------------------------
   // Sprite instances
   //---------------------------------------------
-  ball #(320, 240, 0, 0) u_ball_1 (
+  ball #(.xloc_start(320), .yloc_start(240), .xdir_start(0), .ydir_start(0)) u_ball_1 (
       .draw_ball     (draw_ball[0]),
       .draw_ball_col (draw_ball_col[0]),
       .hcount_col_out(hcount_col_out[0]),
@@ -108,10 +110,11 @@ module top_vga (
       .vcount_col    (vcount_col),
       .empty_col     (empty_col[0]),
       .scan_grant    (scan_grant_1),
-      .move          (move)
+      .move          (move),
+      .frame_start   (frame_start)
   );
 
-  bigball #(80, 80, 1, 0) u_ball_2 (
+  bigball #(.xloc_start(80), .yloc_start(80), .xdir_start(1), .ydir_start(0)) u_ball_2 (
       .draw_ball     (draw_ball[1]),
       .draw_ball_col (draw_ball_col[1]),
       .hcount_col_out(hcount_col_out[1]),
@@ -129,8 +132,19 @@ module top_vga (
       .vcount_col    (vcount_col),
       .empty_col     (empty_col[1]),
       .scan_grant    (scan_done[0]),  // daisy chain grant from ball 1
-      .move          (move)
+      .move          (move),
+      .frame_start   (frame_start)
   );
+
+  //---------------------------------------------
+  // Frame start: one-pixpulse pulse at the start of vertical blanking.
+  // Sprites latch their display position here.
+  //---------------------------------------------
+  always @(posedge clk or posedge rst) begin
+    if (rst) vblank_d1 <= 1'b0;
+    else if (pixpulse) vblank_d1 <= vblank;
+  end
+  assign frame_start = vblank & ~vblank_d1;
 
   //---------------------------------------------
   // Collision scan sequencer + move generator
